@@ -1,27 +1,18 @@
-<html>
-<head>
-<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-<title>Processing Demo</title>
-<script type="text/javascript" src="js/processing-1.4.1.js"></script>
-</head>
-<body>
-<script type="text/processing">
-int tWidth = 800;
-int tHeight = 600;
-void setup(){
-colorMode(RGB);
-size(tWidth,tHeight);
-background(0);
-smooth();
-}
-void draw(){
-fill(0,0,0,15);
-rect(0, 0, tWidth,tHeight);
-fill(255);
-ellipse(mouseX, mouseY, 25,25);
-}
- 
-</script>
-<canvas id="sketch" style="border: 1px solid black;"></canvas>
-</body>
-</html>
+  <!DOCTYPE html>
+ 2   <html>
+ 3     <head>
+ 4       <meta charset="utf-8">
+ 5       <title>My Processing Page</title>
+ 6       <script type="text/javascript" src="processing.js"></script>
+ 7     </head>
+ 8     <body>
+ 9       <script type="application/processing" target="mysketch">
+10       void setup() {background(255);    size(300, 300);  }
+11       void draw() { line(i, 0, random(0, 4), 50); }
+12       class SomeClass {
+13         
+14       }
+15       </script>
+16       <canvas id="mysketch"></canvas>
+17     </body>
+18   </html>
