@@ -7,7 +7,7 @@ style="border:1px solid #c3c3c3;">
 Your browser does not support the canvas element.
 </canvas>
 
-<script src="processing.js"></script>
+<script>
 
 <script type="text/processing" data-processing-target="mycanvas">
 var canvas = document.getElementById("myCanvas");
@@ -15,22 +15,8 @@ var ctx = canvas.getContext("2d");
 ctx.fillStyle = "#FF0000";
 ctx.fillRect(0,0,150,100);
 
-void setup()
-{
-  size(200,200);
-  background(125);
-  fill(255);
-  noLoop();
-  PFont fontA = loadFont("courier");
-  textFont(fontA, 14);  
-}
 
-void draw(){  
-  text("Hello Web!",20,20);
-  println("Hello ErrorLog!");
-}
 </script>
-<canvas id="mycanvas"></canvas>
 
 </body>
 </html>
