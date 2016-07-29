@@ -8,14 +8,13 @@ Your browser does not support the canvas element.
 </canvas>
 
 <script src="processing.js"></script>
+
+<script type="text/processing" data-processing-target="mycanvas">
 var canvas = document.getElementById("myCanvas");
 var ctx = canvas.getContext("2d");
 ctx.fillStyle = "#FF0000";
 ctx.fillRect(0,0,150,100);
 
-
-
-<script type="text/processing" data-processing-target="mycanvas">
 void setup()
 {
   size(200,200);
