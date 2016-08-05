@@ -1,14 +1,21 @@
 <!DOCTYPE html>
 <html>
-	<head>
-		<title>Horrible Title</title>
-		<!-- link to main stylesheet -->
-		<link rel="stylesheet" type="text/css" href="/css/main.css">
+<head>
+<title>Example</title>
+
+<!-- CSS -->	
 <style>
+body {
+background-image: url('/pix/samples/bg1.gif');
+}
+
+main {
+margin-bottom: 200%;
+}
 
 .floating-menu {
 font-family: sans-serif;
-background: skyblue;
+background: yellowgreen;
 padding: 5px;;
 width: 130px;
 z-index: 100;
@@ -24,28 +31,25 @@ color: white;
 }
 </style>
 
+</head>
+<body>
 
-	</head>
-	<body>
-		<nav>
-    		<ul>
-        		<li><a href="/">Home</a></li>
-	        	<li><a href="/study.html">Study</a></li>
-        		<li><a href="/career.html">Career</a></li>
-        		<li><a href="/about.html">About me</a></li>
-    		</ul>
-		</nav>
+<!-- HTML -->
+<main>
+
+<p>Scroll down and watch the menu remain fixed in the same position, as though it was floating.</p>
 
 <nav class="floating-menu">
+<h3>Floating Menu</h3>
+
 <a href="http://www.quackit.com/css/">CSS</a>
 <a href="http://www.quackit.com/html/">HTML</a>
+<a href="http://www.quackit.com/coldfusion/">ColdFusion</a>
+<a href="http://www.quackit.com/database/">Database</a>
+
 </nav>
-		Master's Thesis:
-		<br>
-		Projects:
-		<br>
-		Courses:
-		
-		
-	</body>
+
+</main>
+
+</body>
 </html>
