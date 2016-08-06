@@ -50,7 +50,7 @@ div.menu {
 
 nav ul, footer ul {
     font-family:'Helvetica', 'Arial', 'Sans-Serif';
-    padding: 20px;
+    padding: 10% 30%;
     list-style: none;
     font-weight: bold;
 }
