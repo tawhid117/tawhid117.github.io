@@ -1,0 +1,46 @@
+body {
+    margin: 60px auto;
+    width: 70%;
+}
+div.top_row{
+    position: absolute;
+    top: 5%;
+    width: 55%;
+    border: 1px solid #73AD21;
+    left: 20%;
+    right: 20%
+}
+div.center_col {
+    position: absolute;
+    top: 15%;
+    width: 55%;
+    border: 1px solid #73AD21;
+    left: 20%;
+    right: 20%;    
+} 
+div.left_col {
+    position: absolute;
+    top: 15%;
+    width: 20%;
+    border: 1px solid #73AD21;
+    left: 0px;
+} 
+
+div.right_col {
+    position: absolute;
+    width: 20%;
+    border: 3px solid #73AD21;
+    right: 0px;
+    top: 15%
+} 
+
+
+
+div.menu {
+    position: fixed;
+    top: 15%;
+    left: 0;
+    width: 20%;
+    //height: 100px;
+    border: 1px solid skyblue;
+}
