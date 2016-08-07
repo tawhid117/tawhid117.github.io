@@ -25,6 +25,7 @@ div.left_col {
     width: 20%;
     border: 1px solid #73AD21;
     left: 0px;
+    font-family:"Lucida Console", "Monaco", "monospace";
 } 
 
 div.right_col {
