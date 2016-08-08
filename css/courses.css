@@ -1,7 +1,7 @@
 body {
     margin: 60px auto;
     width: 70%;
-    background-color: "rgb(180,240,190)";
+    background-color: rgb(180,240,190);
 }
 div.top_row{
     position: absolute;
@@ -54,7 +54,7 @@ nav ul, footer ul {
     padding: 1% 20%;
     list-style: none;
     font-weight: bold;
-    color: "rgb(20,120,150)";
+    color: rgb(20,120,150);
 }
 nav ul li, footer ul li {
     display: inline;
@@ -65,5 +65,5 @@ a {
 }
 a:hover {
     text-decoration: underline;
-    color: "rgb(50,5,150)";
+    color: rgb(50,5,150);
 }
