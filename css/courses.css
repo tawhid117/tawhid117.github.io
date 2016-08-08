@@ -1,20 +1,20 @@
 body {
     margin: 60px auto;
     width: 70%;
+    background-color: "rgb(180,240,190)";
 }
 div.top_row{
     position: absolute;
     top: 5%;
-    width: 55%;
-    border: 1px solid #73AD21;
+    width: 60%;
     left: 20%;
     right: 20%
 }
 div.center_col {
     position: absolute;
     top: 15%;
-    width: 55%;
-    border: 1px solid #73AD21;
+    width: 60%;
+    
     left: 20%;
     right: 20%;    
     font-family:"Palatino Linotype", "Book Antiqua", "Palatino", "serif";
@@ -22,25 +22,25 @@ div.center_col {
 div.left_col {
     position: absolute;
     top: 15%;
-    width: 20%;
-    border: 1px solid #73AD21;
-    left: 0px;
+    width: 15%;
+    
+    left: 5%;
     font-family:"Comic Sans MS", "cursive", "sans-serif";
 } 
 
 div.right_col {
     position: absolute;
-    width: 20%;
-    border: 3px solid #73AD21;
-    right: 0px;
+    width: 15%;
+    
+    right: 5%;
     top: 15%
 } 
 
 div.menu {
     position: fixed;
     top: 15%;
-    left: 0;
-    width: 20%;
+    left: 5%;
+    width: 15%;
     //height: 100px;
     border: 1px solid skyblue;
 }
@@ -55,6 +55,7 @@ nav ul, footer ul {
     padding: 1% 20%;
     list-style: none;
     font-weight: bold;
+    color: "rgb(20,120,150)";
 }
 nav ul li, footer ul li {
     display: inline;
@@ -62,8 +63,8 @@ nav ul li, footer ul li {
 }
 a {
     text-decoration: none;
-    color: #999;
 }
 a:hover {
     text-decoration: underline;
+    color: "rgb(20,20,150)";
 }
