@@ -18,7 +18,7 @@ div.center_col {
     left: 20%;
     right: 20%;    
     font-family:"Palatino Linotype", "Book Antiqua", "Palatino", "serif";
-    font-size: 20px;
+    font-size: 18px;
     line-height: 225%;
 } 
 div.left_col {
@@ -61,7 +61,7 @@ nav ul, footer ul {
 nav ul li, footer ul li {
     display: inline;
     margin-right: 20px;
-    font-size: 30px;
+    font-size: 24px;
 }
 a {
     text-decoration: none;
