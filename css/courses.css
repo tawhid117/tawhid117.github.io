@@ -9,7 +9,7 @@ div.top_row{
     width: 60%;
     left: 20%;
     right: 20%
-    size: 20px;
+    font-size: 26px;
 }
 div.center_col {
     position: absolute;
@@ -19,7 +19,7 @@ div.center_col {
     left: 20%;
     right: 20%;    
     font-family:"Palatino Linotype", "Book Antiqua", "Palatino", "serif";
-    size: 36px;
+    font-size: 20px;
     line-height: 225%;
 } 
 div.left_col {
