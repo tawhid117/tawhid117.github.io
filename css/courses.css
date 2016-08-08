@@ -9,7 +9,6 @@ div.top_row{
     width: 60%;
     left: 20%;
     right: 20%
-    font-size: 30px;
 }
 div.center_col {
     position: absolute;
@@ -62,6 +61,7 @@ nav ul, footer ul {
 nav ul li, footer ul li {
     display: inline;
     margin-right: 20px;
+    font-size: 30px;
 }
 a {
     text-decoration: none;
