@@ -6,9 +6,9 @@ body {
 div.top_row{
     position: absolute;
     top: 5%;
-    width: 75%;
-    left: 10%;
-    right: 10%
+    width: 65%;
+    left: 15%;
+    right: 15%
 }
 div.center_col {
     position: absolute;
