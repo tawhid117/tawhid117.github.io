@@ -1,0 +1,1595 @@
+<html><head>
+<title>Cognitive Behavior Simulation of an ANT</title>
+<meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
+
+<script type="text/javascript" src="glMatrix-0.9.5.min.js"></script>
+<script type="text/javascript" src="webgl-utils.js"></script>
+
+<script src="ammo.js" type="text/javascript"></script>
+
+<script type="text/javascript" src="box.js"></script>
+<script type="text/javascript" src="agent.js"></script>
+<script type="text/javascript" src="ground.js"></script>
+
+<script type="text/javascript" src="boxy.js"></script>
+<script type="text/javascript" src="boxz.js"></script>
+
+<script type="text/javascript" src="food01.js"></script>
+<script type="text/javascript" src="food02.js"></script>
+<script type="text/javascript" src="food03.js"></script>
+<script type="text/javascript" src="food04.js"></script>
+
+<script type="text/javascript" src="rip.js"></script>
+<script type="text/javascript" src="human.js"></script>
+
+<script type="text/javascript" src="ant_work.js"></script>
+
+
+<script type="text/javascript">
+    var gl;
+    var statusContext;
+    var shaderProgram;
+    var mvMatrix = mat4.create();
+    var mvMatrixStack = [];
+    var pMatrix = mat4.create();
+    
+    var step = 1;
+	var lastWork = 6;
+	var lastFood = 1;
+	var energy = 1000;
+	
+	var objects =[];
+	
+    var index_ground = 0;
+	objects.push (new ground());
+	
+	var index_agent = 1;
+	objects.push (new agent());
+	objects[index_agent].positionZ = 10;
+	objects[index_agent].positionX = -10;
+	
+	
+	var index_box_1 = 2;
+	objects.push (new food01());
+	objects[index_box_1].positionZ = 17;
+	objects[index_box_1].positionX = 10;
+	objects[index_box_1].energy = 500;
+	
+	
+	var index_box_2 = 3;
+	objects.push (new food02());
+	objects[index_box_2].positionZ = -10;
+	objects[index_box_2].positionX = 15;
+	objects[index_box_2].energy = 2000;
+	
+	var index_box_3 = 4;
+	objects.push (new food03());
+	objects[index_box_3].positionZ = -18;
+	objects[index_box_3].positionX = 1;
+	objects[index_box_3].energy = 100;
+	
+	var index_box_4 = 5;
+	objects.push (new food04());
+	objects[index_box_4].positionZ = 21;
+	objects[index_box_4].positionX = -10;
+	objects[index_box_4].energy = 600;
+	
+	var index_box_5 = 6;				// work in ant_work
+	objects.push (new ant_work());
+	objects[index_box_5].positionZ = -9;
+	objects[index_box_5].positionX = -13;
+	
+	var index_box_6 = 7;				// rest in peace in rip
+	objects.push (new rip());
+	objects[index_box_6].positionZ = 27;
+	objects[index_box_6].positionX = 25;
+	
+	var index_box_7 = 8;				// human
+	objects.push (new human());
+	objects[index_box_7].positionZ = 2;
+	objects[index_box_7].positionX = 2;
+	
+	// var hum_torqueToTarget = 0;
+	
+	
+	var selected_object = index_agent;
+	
+	var human_direction = -1;
+
+	var collisionConfiguration = new Ammo.btDefaultCollisionConfiguration();
+	var dispatcher = new Ammo.btCollisionDispatcher(collisionConfiguration);
+	var overlappingPairCache = new Ammo.btDbvtBroadphase();
+	var solver = new Ammo.btSequentialImpulseConstraintSolver();	
+	
+	var physicsWorld = new Ammo.btDiscreteDynamicsWorld(dispatcher,
+      overlappingPairCache, solver, collisionConfiguration);
+
+	physicsWorld.setGravity(new Ammo.btVector3(0, -10, 0));
+
+	var transform = new Ammo.btTransform();
+
+	var quat_rotation = new Ammo.btQuaternion;
+	var pi_by_180 = (22.0/7.0)/180.0;
+
+	// Creating physics enabled bodies for scene objects	
+
+	objects[index_box_1].collisionShape = new Ammo.btBoxShape (
+											new Ammo.btVector3 (0.1, 0.15, 0.1) // (0.5, 0.5, 0.5)
+										);
+	objects[index_box_2].collisionShape = new Ammo.btBoxShape (
+											new Ammo.btVector3 (0.5, 1.0, 0.5)		// 0,5
+										);
+	objects[index_box_3].collisionShape = new Ammo.btBoxShape (
+											new Ammo.btVector3 (0.5, 0.5, 0.5)
+										);		
+	objects[index_box_4].collisionShape = new Ammo.btBoxShape (
+											new Ammo.btVector3 (0.5, 2.0, 0.5)
+										);		
+	objects[index_box_5].collisionShape = new Ammo.btBoxShape (
+											new Ammo.btVector3 (0.5, 0.5, 0.5)
+										);		
+	objects[index_box_6].collisionShape = new Ammo.btBoxShape (
+											new Ammo.btVector3 (0.5, 0.5, 0.5)
+										);
+
+	objects[index_box_7].collisionShape = new Ammo.btBoxShape (
+											new Ammo.btVector3 (1.5, 2.5, 1.5)
+										);										
+	objects[index_agent].collisionShape = new Ammo.btBoxShape (
+											new Ammo.btVector3 (1.0, 1.5, 1.0)
+										);
+	objects[index_ground].collisionShape = new Ammo.btBoxShape (
+											new Ammo.btVector3 (45, 0, 45)
+										);
+	for(i=0; i < objects.length; i++)
+	{
+		objects[i].collisionShapeTransform = new Ammo.btTransform ();
+		objects[i].collisionShapeTransform.setIdentity ();
+		objects[i].collisionShapeTransform.setOrigin (new Ammo.btVector3 (
+				objects[i].positionX,
+				objects[i].positionY,
+				objects[i].positionZ
+				)
+		);
+		
+		quat_rotation.setEuler(objects[i].angleX*pi_by_180, objects[i].angleY*pi_by_180, objects[i].angleZ*pi_by_180);
+		objects[i].collisionShapeTransform.setRotation(quat_rotation);
+									
+		objects[i].localInertia = new Ammo.btVector3 (0, 0, 0);
+		objects[i].collisionShape.calculateLocalInertia(
+				objects[i].mass,
+				objects[i].localInertia
+				);														
+		objects[i].motionState = new Ammo.btDefaultMotionState(
+				objects[i].collisionShapeTransform
+				);
+		objects[i].rigidBodyInfo = new Ammo.btRigidBodyConstructionInfo(
+				objects[i].mass, 
+				objects[i].motionState,
+				objects[i].collisionShape,
+				objects[i].localInertia
+				);
+
+		objects[i].physicsBody = new Ammo.btRigidBody(objects[i].rigidBodyInfo);
+		
+		objects[i].physicsBody.setRestitution( objects[i].elasticity ); 
+		
+		physicsWorld.addRigidBody(objects[i].physicsBody);
+
+		delete objects[i].collisionShape;
+		delete objects[i].collisionShapeTransform;
+		delete objects[i].localInertia;
+		delete objects[i].motionState;
+		delete objects[i].rigidBodyInfo;
+	}
+
+
+	
+
+	var lastTime 	= 0;
+	var timerDelay = 100;
+	var timeNow 	= 0;
+	
+	function timerFunction()
+	{
+		timeNow = new Date().getTime();
+		var elapsed = timeNow - lastTime;
+		  
+		requestAnimFrame(timerFunction);
+		  
+		handleKeys();
+
+		physicsWorld.stepSimulation(10/60, 15);
+		updatetMotionStatesFromPhysics();
+		if (elapsed > timerDelay)
+		{	
+			animateScene(); 	  		
+	 		lastTime = timeNow;
+	 	}
+	}
+	
+	var run_simulation = 0;
+	var selected_target = 0; //Note: It is the automously selected object. 
+							 //selected_object is the manually selected one
+	var hum_selected_target = 9;
+	
+	
+	
+	function simulationSwitch (switchValue)
+	{
+		run_simulation = switchValue;
+	}
+	
+	function pointDistance(x1, y1, z1, x2, y2, z2)
+	{
+		return Math.sqrt( (x1 - x2)*(x1 - x2) + (y1 - y2)*(y1 - y2) + (z1 - z2)*(z1 - z2) );
+	}
+
+	function selectTarget()
+	{
+		/*
+		//Initializing minimum distance with distance of a possible target
+		var min_distance = 9999;
+		var nearest_object_index = 0; 
+		
+		for(i = index_box_1; i <= index_box_2; i++) //Looking through possible targets (boxes) in the object list
+		{
+			if (objects[i].reached != 1) //process if not already reached
+			{
+				 //Finding the box with the minimum distance
+				var boxDistance = pointDistance(
+										objects[index_agent].positionX,
+										objects[index_agent].positionY,
+										objects[index_agent].positionZ,
+										
+										objects[i].positionX,
+										objects[i].positionY,
+										objects[i].positionZ
+										);
+					
+				if (boxDistance < min_distance)
+				{
+					min_distance 			= boxDistance;
+					nearest_object_index 	= i;
+				}
+			}
+		}
+		
+		selected_target = nearest_object_index; //Setting the global variable 
+		*/
+		selected_target = step;
+	}
+	
+	var forceToTarget = new Ammo.btVector3;
+	var torqueToTarget = new Ammo.btVector3;
+	var angle_diff = 0;
+	var targetDistance = 0;
+	
+	var hum_forceToTarget = new Ammo.btVector3;
+	var hum_torqueToTarget = new Ammo.btVector3;
+	var hum_targetDistance = 0;
+	var hum_angle_diff = 0;
+	
+	function followTarget()
+	{
+		var correction_in_angle	= 10; //Angle error (if any) in the direction of 3D model
+		var torque_magnitude	= 7; // 20
+		var force_magnitude			= 10;  //25
+		
+		/*
+		var hum_correction_in_angle	= 90; //Angle error (if any) in the direction of 3D model
+		var hum_torque_magnitude	= 7; // 20
+		var hum_force_magnitude			= 10;  //25
+		*/
+		
+		
+		var dX = objects[selected_target].positionX - objects[index_agent].positionX;
+		var dY = objects[selected_target].positionY - objects[index_agent].positionY;
+		var dZ = objects[selected_target].positionZ - objects[index_agent].positionZ;
+		
+		/*
+		var hum_dX = objects[index_box_8].positionX - objects[index_box_7].positionX;
+		var hum_dY = objects[index_box_8].positionY - objects[index_box_7].positionY;
+		var hum_dZ = objects[index_box_8].positionZ - objects[index_box_7].positionZ;
+		*/
+		
+		
+		var angleYToTarget = correction_in_angle + Math.atan2(dX, dZ)/pi_by_180; //In X-Z plane
+		
+		/*
+		var hum_angleYToTarget = hum_correction_in_angle + Math.atan2(dX, dZ)/pi_by_180; //In X-Z plane
+		*/
+		
+		//Computing torque to rotate towards target
+		angle_diff = angleYToTarget - objects[index_agent].angleY;
+		if(angle_diff > 360) angle_diff -= 360;
+		var abs_angle_diff = Math.abs(angle_diff);
+		var torque_direction = angle_diff / abs_angle_diff;
+		
+		torqueToTarget.setX (0.0);
+		if (abs_angle_diff > 10) //A large cussion because the torque pushes ahead sometimes
+			torqueToTarget.setY (torque_magnitude*torque_direction);
+		else
+			torqueToTarget.setY (0.0);
+		torqueToTarget.setZ (0.0);
+		
+		var mag = Math.sqrt(dX*dX + dY*dY + dZ*dZ)
+		
+		
+		/*
+		//Computing torque to rotate human
+		hum_angle_diff = hum_angleYToTarget - objects[index_box_7].angleY;
+		if(hum_angle_diff > 360) hum_angle_diff -= 360;
+		var hum_abs_angle_diff = Math.abs(hum_angle_diff);
+		var hum_torque_direction = hum_angle_diff / hum_abs_angle_diff;
+		
+		hum_torqueToTarget.setX (0.0);
+		if (hum_abs_angle_diff > 10) //A large cussion because the torque pushes ahead sometimes
+			hum_torqueToTarget.setY (torque_magnitude*torque_direction);
+		else
+			hum_torqueToTarget.setY (0.0);
+		hum_torqueToTarget.setZ (0.0);
+		
+		var hum_mag = Math.sqrt(hum_dX*hum_dX + hum_dY*hum_dY + hum_dZ*hum_dZ)
+		*/
+		
+		
+		//Computing force towards the target
+		forceToTarget.setX(force_magnitude*dX/mag);
+		forceToTarget.setY(force_magnitude*dY/mag);
+		forceToTarget.setZ(force_magnitude*dZ/mag);
+		
+	
+		/*
+			//Computing force towards the target
+		hum_forceToTarget.setX(hum_force_magnitude*hum_dX/hum_mag);
+		hum_forceToTarget.setY(hum_force_magnitude*hum_dY/hum_mag);
+		hum_forceToTarget.setZ(hum_force_magnitude*hum_dZ/hum_mag);
+		*/
+		
+		//Turn the agent if not directed towards target and move towards it
+		objects[index_agent].physicsBody.activate();				
+		if (abs_angle_diff > 10)
+			objects[index_agent].physicsBody.applyTorque (torqueToTarget);
+		else
+			objects[index_agent].physicsBody.applyCentralForce (forceToTarget);
+			
+			
+		/*
+		//Turn the agent if not directed towards target and move towards it --- human
+		objects[index_box_7].physicsBody.activate();				
+		if (hum_abs_angle_diff > 10)
+			objects[index_box_7].physicsBody.applyTorque (hum_torqueToTarget);
+		else
+			objects[index_box_7].physicsBody.applyCentralForce (hum_forceToTarget);
+		*/		
+		
+			
+	}
+	
+	
+	/*
+	function followTarget2()
+	{
+		var correction_in_angle	= 90; //Angle error (if any) in the direction of 3D model
+		var torque_magnitude	= 7; // 20
+		var force_magnitude			= 10;  //25
+		
+		var dX = objects[hum_selected_target].positionX - objects[index_box_7].positionX;
+		var dY = objects[hum_selected_target].positionY - objects[index_box_7].positionY;
+		var dZ = objects[hum_selected_target].positionZ - objects[index_box_7].positionZ;
+		
+		var angleYToTarget = correction_in_angle + Math.atan2(dX, dZ)/pi_by_180; //In X-Z plane
+		
+		//Computing torque to rotate towards target
+		angle_diff = angleYToTarget - objects[index_box_7].angleY;
+		if(angle_diff > 360) angle_diff -= 360;
+		var abs_angle_diff = Math.abs(angle_diff);
+		var torque_direction = angle_diff / abs_angle_diff;
+		
+		torqueToTarget.setX (0.0);
+		if (abs_angle_diff > 10) //A large cussion because the torque pushes ahead sometimes
+			torqueToTarget.setY (torque_magnitude*torque_direction);
+		else
+			torqueToTarget.setY (0.0);
+		torqueToTarget.setZ (0.0);
+		
+		var mag = Math.sqrt(dX*dX + dY*dY + dZ*dZ)
+		//Computing force towards the target
+		forceToTarget.setX(force_magnitude*dX/mag);
+		forceToTarget.setY(force_magnitude*dY/mag);
+		forceToTarget.setZ(force_magnitude*dZ/mag);
+		
+		//Turn the agent if not directed towards target and move towards it
+		objects[index_box_7].physicsBody.activate();				
+		if (abs_angle_diff > 10)
+			objects[index_box_7].physicsBody.applyTorque (torqueToTarget);
+		else
+			objects[index_box_7].physicsBody.applyCentralForce (forceToTarget);
+			
+		
+			
+	}
+	*/
+	
+	function applyForceAndTorque()
+	{
+		objects[selected_object].physicsBody.activate();
+		objects[selected_object].physicsBody.applyCentralImpulse (
+													new Ammo.btVector3(
+														document.getElementById('force_x').value, 
+														document.getElementById('force_y').value,
+														document.getElementById('force_z').value
+													)
+										);
+		objects[selected_object].physicsBody.applyTorqueImpulse (
+													new Ammo.btVector3(
+														document.getElementById('torque_x').value, 
+														document.getElementById('torque_y').value,
+														document.getElementById('torque_z').value
+													)
+										);
+
+	}
+	
+	function applyForceAndTorque2()
+	{
+		objects[index_box_7].physicsBody.activate();
+		objects[index_box_7].physicsBody.applyCentralImpulse (new Ammo.btVector3((human_direction*20),0,0));
+		objects[index_box_7].physicsBody.applyTorqueImpulse (new Ammo.btVector3(0,0,0));
+		//if ( objects[index_box_7].positionX <= 20 && objects[index_box_7].positionX >= -20) { human_direction = human_direction;}
+		if ( objects[index_box_7].positionX > 15)  { human_direction = -1;}
+		if ( objects[index_box_7].positionX < -15) { human_direction =  1;} 
+				
+
+	}
+	
+	function applyForceAndTorque3() 
+	{
+		objects[index_agent].physicsBody.activate();
+		if ( objects[index_agent].positionZ < objects[index_box_7].positionZ )
+			{
+			objects[index_agent].physicsBody.applyCentralImpulse (new Ammo.btVector3(0,0,-1));
+			objects[index_agent].physicsBody.applyTorqueImpulse (new Ammo.btVector3(0,0,0));
+			}
+		if ( objects[index_agent].positionX < objects[index_box_7].positionX )
+			{
+			objects[index_agent].physicsBody.applyCentralImpulse (new Ammo.btVector3(-1,0,0));
+			objects[index_agent].physicsBody.applyTorqueImpulse (new Ammo.btVector3(0,0,0));
+			}	
+		if ( objects[index_agent].positionZ > objects[index_box_7].positionZ )
+			{
+			objects[index_agent].physicsBody.applyCentralImpulse (new Ammo.btVector3(0,0,1));
+			objects[index_agent].physicsBody.applyTorqueImpulse (new Ammo.btVector3(0,0,0));
+			}
+		if ( objects[index_agent].positionX > objects[index_box_7].positionX )
+			{
+			objects[index_agent].physicsBody.applyCentralImpulse (new Ammo.btVector3(1,0,0));
+			objects[index_agent].physicsBody.applyTorqueImpulse (new Ammo.btVector3(0,0,0));
+			}			
+		// objects[index_agent].physicsBody.applyCentralImpulse (new Ammo.btVector3((human_direction*15),0,0));
+		// objects[index_box_7].physicsBody.applyTorqueImpulse (new Ammo.btVector3(0,0,0));
+		// if ( objects[index_box_7].positionX <= 20 && objects[index_box_7].positionX >= -20) { human_direction = human_direction;}
+		// if ( objects[index_box_7].positionX > 15) { human_direction = -1;}
+		// if ( objects[index_box_7].positionX < -15) { human_direction = 1;} 
+	}
+		
+					
+		
+	function is_human()
+	
+	{
+		
+		
+		var current_position_X = objects[index_agent].positionX;
+		var current_position_Y = objects[index_agent].positionY;
+		var current_position_Z = objects[index_agent].positionZ;
+		
+		if ( (objects[index_box_7].positionX - current_position_X < 9)  && (objects[index_box_7].positionX - current_position_X > -9) ) 
+		{
+			if ( (objects[index_box_7].positionZ - current_position_Z < 9)  && (objects[index_box_7].positionZ - current_position_Z > -9)  )
+			{
+			//objects[go_away_to].positionX = current_position_X + 05;
+			//objects[go_away_to].positionY = current_position_Y + 00;  // Y 05 00 - will it fly?
+			//objects[go_away_to].positionZ = current_position_Z + 05;
+			//change_target();
+			
+			statusContext.fillStyle = "red";
+			statusContext.font      = 'bold 12px courier new'; //35px
+			statusContext.textBaseline = 'top';
+			
+			statusContext.fillText  ('ALARM ! Human !', 20, 425); // 20, 1150 
+			statusContext.fillText  ('Go away from it', 20, 450); // 20, 1200 
+			
+			applyForceAndTorque3()
+			}	
+		}
+		
+		else if ( (objects[index_box_7].positionZ - current_position_Z < 9)  && (objects[index_box_7].positionZ - current_position_Z > -9) ) 
+		{
+			if ( (objects[index_box_7].positionX - current_position_X < 9)  && (objects[index_box_7].positionX - current_position_X > -9)  )
+			{
+			//objects[go_away_to].positionX = current_position_X + 05;
+			//objects[go_away_to].positionY = current_position_Y + 00;  // Y 05 00 - will it fly?
+			//objects[go_away_to].positionZ = current_position_Z + 05;
+			//change_target();
+			
+			statusContext.fillStyle = "red";
+			statusContext.font      = 'bold 12px courier new'; //35px
+			statusContext.textBaseline = 'top';
+			// statusContext.fillText  ('Is human near', 20, 260);
+			statusContext.fillText  ('ALARM ! Human !', 20, 400); // 20, 1150 
+			statusContext.fillText  ('Go away from it', 20, 450); // 20, 1200 
+			applyForceAndTorque3()
+			}	
+		}
+		else
+			{
+			statusContext.fillStyle = "green";
+			statusContext.font      = 'bold 12px courier new'; // 35px
+			statusContext.textBaseline = 'top';
+			// statusContext.fillText  ('No human alert', 20, 260);
+			statusContext.fillText  ('Safe Route', 20, 450); // 20, 1150 
+			}
+			
+	}
+	
+	function change_target()
+	{
+		selected_target = index_box_6;
+		/*
+		if (objects[selected_target].positionZ < 0) 
+			{
+			selected_target = lastFood; // select food source 01
+			}
+		if (objects[selected_target].positionZ > 0) 
+			{
+			selected_target = lastFood; // select food source 01
+			}
+		*/		
+			
+	}
+	
+	function looseEnergy(x)
+	{
+	
+		if(x==1) {setTimeout(function() {energy = energy - 2;},1250);}
+		if(x==2) {setTimeout(function() {energy = energy + 1;},1250);}
+		
+	}
+	
+	/*
+	function gainEnergy()
+	{
+	
+		setTimeout(function() {energy = energy +1;},1250);
+			
+	}
+	*/
+	
+	function showEnergy()
+	{
+	// Live update of food sources:																			// Live update of food sources: (from line 1250)
+				statusContext.fillStyle = "green";
+				statusContext.font      = 'bold 12px courier new'; // 30px
+				statusContext.textBaseline = 'top';
+				statusContext.fillText  ('Energy in food sources:', 20, 275);// 1250
+				
+				statusContext.fillStyle = "black";
+				statusContext.font      = 'bold 12px arial'; // 25px 
+				statusContext.textBaseline = 'top';
+				statusContext.fillText  ('Ice Cream:', 20, 300);			// 1300									// food 01
+				statusContext.fillText  (Math.floor(objects[index_box_1].energy).toString(), 100, 300);  // 160, 1300 
+				statusContext.fillText  ('[100 unit / serving]', 175, 300); //245, ic 
+				
+				statusContext.fillText  ('Chocolate:', 20, 320);		//1335										// food 02
+				statusContext.fillText  (Math.floor(objects[index_box_2].energy).toString(), 100, 320); // 160, 1335 
+				statusContext.fillText  ('[800 unit / serving]', 175, 320); // 245, 1335
+				
+				statusContext.fillText  ('Cake:', 20, 340);		// 20, 1370										// food 03
+				statusContext.fillText  (Math.floor(objects[index_box_3].energy).toString(), 100, 340); // 160, 1370 
+				statusContext.fillText  ('[30 unit / serving]', 175, 340); // 245, 1370 
+				
+				statusContext.fillText  ('Cookie:', 20, 360);												// food 03 , 20, 1405
+				statusContext.fillText  (Math.floor(objects[index_box_4].energy).toString(), 100, 360); // 160, 1405 
+				statusContext.fillText  ('[200 unit / serving]', 175, 360); // 245, 1405 
+	}
+	
+	function animateScene()
+	{
+		drawScene();
+		applyForceAndTorque2();
+		if (run_simulation == 1)
+		{
+			looseEnergy(1);
+			
+			showEnergy();
+			// free human motion
+			//
+			// followTarget2();
+			
+			
+			if (energy >1000)
+			{
+				
+							
+			selected_target = lastWork;
+				
+			if (selected_target >= 2) //one of the indices of possible targets
+				followTarget();
+				is_human();
+				// objects[index_agent].force_x
+				//applyForceAndTorque2();
+
+			targetDistance = pointDistance(
+									objects[index_agent].positionX,
+									objects[index_agent].positionY,
+									objects[index_agent].positionZ,
+									
+									objects[selected_target].positionX,
+									objects[selected_target].positionY,
+									objects[selected_target].positionZ
+									);
+									
+			if (targetDistance <= 2.0) //We know that the agent has size 1.0 and the box 0.5
+			{
+				objects[selected_target].reached = 1; //Mark so that it does not get selected again
+				
+				if (selected_target == 6 ) {energy = energy - 500;}
+				
+				selected_target = 0; //Now search is to start again
+				//energy = energy + 500;
+			}
+				
+			}
+			
+			if (energy <= 900 && energy > 10) 
+		{
+			//applyForceAndTorque2();
+			if (selected_target == 0)
+				step = lastFood + 1; // step = step + 1;
+				selectTarget();
+				
+				
+			if (selected_target >= 2) //one of the indices of possible targets
+				followTarget();
+				is_human();
+				
+			 
+
+			targetDistance = pointDistance(
+									objects[index_agent].positionX,
+									objects[index_agent].positionY,
+									objects[index_agent].positionZ,
+									
+									objects[selected_target].positionX,
+									objects[selected_target].positionY,
+									objects[selected_target].positionZ
+									);
+									
+			if (targetDistance <= 2.0) //We know that the agent has size 1.0 and the box 0.5
+			{
+				objects[selected_target].reached = 1; //Mark so that it does not get selected again
+				lastFood = lastFood + 1;
+				if (lastFood == 5) {lastFood = 1;}
+				if (selected_target == 2 ) {if(objects[index_box_1].energy >= 100) {take_food(100);  objects[index_box_1].energy = objects[index_box_1].energy-100;}}
+				if (selected_target == 3 ) {if(objects[index_box_2].energy >= 800) {take_food(800); objects[index_box_2].energy = objects[index_box_2].energy-800;}} //{energy = energy + 200;}
+				if (selected_target == 4 ) {if(objects[index_box_3].energy >= 30) {take_food(30); objects[index_box_3].energy = objects[index_box_3].energy-30;}} //{energy = energy - 200;}
+				if (selected_target == 5 ) {if(objects[index_box_4].energy >= 200) {take_food(200); objects[index_box_4].energy = objects[index_box_4].energy-200;}} //{energy = energy + 500;}
+				
+				selected_target = 0; //Now search is to start again
+				//energy = energy + 500;
+				
+				
+			}
+		}
+		// /*
+		
+		
+		if (energy <= 0)
+		{
+			selected_target = 7;
+				
+			if (selected_target >= 2) //one of the indices of possible targets
+				followTarget();
+				
+			 
+
+			targetDistance = pointDistance(
+									objects[index_agent].positionX,
+									objects[index_agent].positionY,
+									objects[index_agent].positionZ,
+									
+									objects[selected_target].positionX,
+									objects[selected_target].positionY,
+									objects[selected_target].positionZ
+									);
+									
+			if (targetDistance <= 2.0) //We know that the agent has size 1.0 and the box 0.5
+			{
+				simulationSwitch (0);
+				objects[selected_target].reached = 1; //Mark so that it does not get selected again
+
+				
+				selected_target = 0; //Now search is to start again
+				//energy = energy + 500;
+			}
+			
+			if(selected_target >= 7)
+			{
+				// setTimeout(function() {simulationSwitch (0);},40250);
+				setTimeout(40250);
+			}
+		}
+		
+		
+		// */
+	}
+	}
+
+	function take_food(food_amount)
+	{
+	for(i=0; i < food_amount; i++)
+		{
+		setTimeout(4250);
+		looseEnergy(2);		// 2 indicates eating: energy = energy + 2 ;
+		}
+	}
+	
+	
+	
+	
+    function updatetMotionStatesFromPhysics()
+    {
+		for(i=0; i < objects.length; i++)
+		{
+			var currentObject = objects[i].physicsBody;
+	
+			currentObject.getMotionState().getWorldTransform(transform);
+
+			var position = transform.getOrigin();
+
+			objects[i].positionX = position.x();
+			objects[i].positionY = position.y();
+			objects[i].positionZ = position.z();
+			
+			var quaternion = transform.getRotation();
+
+			var eulerAngles = quaternionToEuler(
+									quaternion.w(), quaternion.x(), quaternion.y(), quaternion.z()
+								);
+			objects[i].angleX = eulerAngles[0];
+			objects[i].angleY = eulerAngles[1];
+			objects[i].angleZ = eulerAngles[2];
+			
+		}
+		
+	}
+	pointLightObject			= new Object();
+    directionalLightObject 		= new Object();
+    ambientLightObject			= new Object();
+    cameraObject 				= new Object();
+	
+
+	
+    function webGLStart()
+    {
+        var glCanvas = document.getElementById("webgl-canvas");
+        initGL(glCanvas);
+        
+        var statusCanvas = document.getElementById("status-canvas");
+        statusContext = statusCanvas.getContext("2d");
+        
+        initShaders();
+
+        gl.clearColor(0.0, 0.0, 0.0, 1.0);
+        gl.enable(gl.DEPTH_TEST);
+
+		document.onkeydown = handleKeyDown;
+        document.onkeyup = handleKeyUp;
+        
+		initCamera();
+		initLights();
+		
+		for(i=0; i < objects.length; i++)
+			setObjectBuffers(objects[i]);
+		
+
+		glCanvas.onmousedown = handleMouseDown;
+        document.onmouseup = handleMouseUp;
+        document.onmousemove = handleMouseMove;
+  
+        timerFunction();
+    }    
+    
+    function drawScene() {
+        gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+        mat4.perspective(45, gl.viewportWidth / gl.viewportHeight, 5, 100.0, pMatrix);
+		mat4.identity(mvMatrix);
+
+		setCamera();
+		setLights();
+		
+		// Draw the objects
+		drawObject(objects[index_ground]);
+		
+				drawObject(objects[index_agent]);
+		
+				drawObject(objects[index_box_1]);
+		
+				drawObject(objects[index_box_2]);
+		
+				drawObject(objects[index_box_3]);	
+		
+				drawObject(objects[index_box_4]);			
+		
+				drawObject(objects[index_box_5]);			
+		
+				drawObject(objects[index_box_6]);
+				
+				drawObject(objects[index_box_7]);
+				
+				
+					
+				
+		//Deleting previous drawing in the status canvas
+		statusContext.fillStyle = "LightBlue";
+		statusContext.fillRect(2, 2, 500, 1500);
+		
+		/*
+		var barLength = 100;
+		var absoluteAngle = Math.abs (Math.floor (objects[index_agent].angleY))%360;
+		var factorOfMax = Math.floor(absoluteAngle)/360;
+		var factorOfBarLength = Math.floor(factorOfMax*barLength);
+		
+		statusContext.fillStyle = "black";
+		statusContext.font      = 'bold 12px sans-serif';
+		statusContext.textBaseline = 'top';
+		statusContext.fillText  ('Object.angleY', 50, 9);
+
+		statusContext.strokeStyle = "black";
+		statusContext.strokeRect(50, 25, barLength, 30);
+		
+		statusContext.fillStyle = "green";
+		statusContext.fillRect(50, 25, factorOfBarLength, 30);
+		
+		statusContext.fillStyle = "black";
+		statusContext.font         = '12px sans-serif';
+		statusContext.textBaseline = 'top';
+		statusContext.fillText  (absoluteAngle.toString(), 20, 30);
+		
+		statusContext.fillText  ('Simulation', 20, 60);
+		statusContext.fillText  (run_simulation.toString(), 150, 60);
+		statusContext.fillText  ('Target Index', 20, 80);
+		statusContext.fillText  (selected_target.toString(), 150, 80);
+		statusContext.fillText  ('Force to target', 20, 100);
+		statusContext.fillText  ('['
+									+ Math.floor(forceToTarget.getX()).toString()+','
+									+ Math.floor(forceToTarget.getY()).toString()+','
+									+ Math.floor(forceToTarget.getZ()).toString()
+									+ ']',
+									 150, 100);
+		statusContext.fillText  ('Angle to target', 20, 120);
+		statusContext.fillText  (Math.floor(angle_diff).toString(), 150, 120);
+		
+		statusContext.fillText  ('Target distance', 20, 140);
+		statusContext.fillText  (Math.floor(energy).toString(), 150, 140);
+		*/
+
+		statusContext.fillStyle = "green";
+		statusContext.font      = 'bold 12px courier new'; // 35px
+		statusContext.textBaseline = 'top';
+		statusContext.fillText  ('Safety from predators:', 20, 400);	// 1100
+
+
+
+		statusContext.fillStyle = "grey";
+		statusContext.font      = 'bold 18px comic sans ms'; // 30px
+		statusContext.textBaseline = 'top';
+		statusContext.fillText  ('Workspace', 100, 10); //100, 450 
+		
+		// current energy and status																// current energy and status
+		statusContext.fillStyle = "green";
+		statusContext.font      = 'bold 14px courier new'; // 30px
+		statusContext.fillText  ('Energy:', 20, 40); // 600
+		statusContext.fillStyle = "red";
+		statusContext.fillText  (Math.floor(energy).toString(), 175, 40); // 150 , 600
+ 		statusContext.fillStyle = "green";
+		statusContext.fillText  ('Status:', 20, 100); // 20, 650 
+		statusContext.fillStyle = "red";
+		if (energy < 900 && energy>0) {statusContext.fillText  ('Hungry', 175, 100);} // 150 ,650 
+		if (energy > 1000) {statusContext.fillText  ('Ready to work', 175, 100);}
+		if (energy > 900 && energy<1000) {statusContext.fillText  ('Free Time', 175, 100);}
+		if (energy < 000) {statusContext.fillText  ('Died', 175, 100);}
+		if (energy < 000) {statusContext.fillText  ('Carried to Cemetery', 175, 100);}
+		
+		
+		//	What is it doing?																			//What is it doing?
+		statusContext.fillStyle = "green";
+		statusContext.font      = 'bold 14px courier new'; // 40px
+		statusContext.fillText  ('What is it doing?:', 20, 70); // 20, 800 
+		statusContext.fillStyle = "blue";
+		statusContext.font      = 'bold 12px courier new'; // 30px
+		if(energy > 1000) {statusContext.fillText  ('Working', 175, 70);} // 20, 850 
+		if(energy < 1000 && energy > 900) {statusContext.fillText  ('Taking rest', 175, 70);}// 20, 850 
+		if(energy < 900  && energy > 0) {statusContext.fillText  ('Searching Food', 175, 70);}// 20, 850 
+		if(energy <= 0) {statusContext.fillText  ('Rest in Peace', 175, 70);} // 20, 850 
+		
+		// The next target is																				// The next target is
+		statusContext.fillStyle = "green";
+		statusContext.font      = 'bold 12px courier new'; //25px
+		statusContext.textBaseline = 'top';
+		statusContext.fillText  ('The next target is:', 20, 200); // 20, 900 
+		//statusContext.fillStyle = "red";
+		// statusContext.fillText  (Math.floor(selected_target).toString(), 600, 650);
+		
+		statusContext.fillStyle = "blue";
+		statusContext.font      = 'bold 12px courier new'; //27px
+		statusContext.textBaseline = 'top';
+		if( selected_target == 2) {statusContext.fillText  ('Ice Cream', 175, 200);} 	// 20, 950
+		if( selected_target == 3) {statusContext.fillText  ('Chocolate', 175, 200);} 	// 20, 950
+		if( selected_target == 4) {statusContext.fillText  ('Cake', 175, 200);}		// 20, 950
+		if( selected_target == 5) {statusContext.fillText  ('Cookie', 175, 200);}  	// 20, 950
+		if( selected_target == 6) {statusContext.fillText  ('Building nest', 175, 200);}  // 20, 950
+		
+		
+
+
+		
+    }
+
+	function selectObject(selected_option)
+	{
+		selected_object = selected_option;
+		
+	}
+	
+	function quaternionToEuler(qw, qx, qy, qz)
+	{
+		var eX, eY, eZ;
+		var qw2 = qw*qw;
+		var qx2 = qx*qx;
+		var qy2 = qy*qy;
+		var qz2 = qz*qz;
+		var test= qx*qy + qz*qw;
+
+		if (test > 0.499)
+		{
+		  eY = 360/Math.PI*Math.atan2(qx,qw);
+		  eZ = 90;
+		  eX = 0;
+		  return [eX, eY, eZ];  
+		}
+
+		if (test < -0.499)
+		{
+		  eY = -360/Math.PI*Math.atan2(qx,qw);
+		  eZ = -90;
+		  eX = 0;
+		  return [eX, eY, eZ]; 
+		}
+
+		var h = Math.atan2(2*qy*qw-2*qx*qz,1-2*qy2-2*qz2);
+		var a = Math.asin(2*qx*qy+2*qz*qw);
+		var b = Math.atan2(2*qx*qw-2*qy*qz,1-2*qx2-2*qz2);
+
+		eY = h*180/Math.PI;
+		eZ = a*180/Math.PI;
+		eX = b*180/Math.PI;
+		return [eX, eY, eZ];
+
+	}
+	
+
+    
+    function drawObject(object)
+    {
+		mvPushMatrix();
+        mat4.translate(mvMatrix, [object.positionX, object.positionY, object.positionZ]);
+        mat4.rotate(mvMatrix, degToRad(object.angleX), [1, 0, 0]);
+		mat4.rotate(mvMatrix, degToRad(object.angleY), [0, 1, 0]);
+		mat4.rotate(mvMatrix, degToRad(object.angleZ), [0, 0, 1]);
+
+		//Informing the shader if this object is to be drawn using texture or simple color
+		gl.uniform1i(shaderProgram.useTexturesUniform, object.hasTexture);
+		gl.uniform1i(shaderProgram.useTransparencyUniform, object.isTransparent);
+		
+        gl.bindBuffer(gl.ARRAY_BUFFER, object.vertexPositionBuffer);
+        gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, object.vertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, object.vertexNormalBuffer);
+        gl.vertexAttribPointer(shaderProgram.vertexNormalAttribute, object.vertexNormalBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
+        if (object.hasTexture)
+        {
+			gl.bindBuffer(gl.ARRAY_BUFFER, object.vertexTextureCoordBuffer);
+			gl.vertexAttribPointer(shaderProgram.textureCoordAttribute, object.vertexTextureCoordBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
+			gl.activeTexture(gl.TEXTURE0);
+			gl.bindTexture(gl.TEXTURE_2D, object.texture);
+			gl.uniform1i(shaderProgram.samplerUniform, 0);
+		}
+			gl.bindBuffer(gl.ARRAY_BUFFER, object.vertexColorBuffer);
+			gl.vertexAttribPointer(shaderProgram.vertexColorAttribute, 
+								object.vertexColorBuffer.itemSize, gl.FLOAT, false, 0, 0);
+		
+		
+		if(object.isTransparent)
+		{
+			gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+            gl.enable(gl.BLEND);
+            gl.uniform1f(shaderProgram.alphaUniform, object.tranparancyLevel);
+		}
+		
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, object.vertexIndexBuffer);
+        setMatrixUniforms();
+        gl.drawElements(gl.TRIANGLES, object.vertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
+
+        gl.disable(gl.BLEND);
+
+        
+		mvPopMatrix();
+	}
+	
+	function initShaders()
+    {
+        var fragmentShader = getShader(gl, "shader-fs");
+        var vertexShader = getShader(gl, "shader-vs");
+
+        shaderProgram = gl.createProgram();
+        gl.attachShader(shaderProgram, vertexShader);
+        gl.attachShader(shaderProgram, fragmentShader);
+        gl.linkProgram(shaderProgram);
+
+        if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
+            alert("Could not initialise shaders");
+        }
+
+        gl.useProgram(shaderProgram);
+        
+        shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "aVertexPosition");
+        gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
+
+        shaderProgram.vertexNormalAttribute = gl.getAttribLocation(shaderProgram, "aVertexNormal");
+        gl.enableVertexAttribArray(shaderProgram.vertexNormalAttribute);
+
+		shaderProgram.textureCoordAttribute = gl.getAttribLocation(shaderProgram, "aTextureCoord"); 
+		gl.enableVertexAttribArray(shaderProgram.textureCoordAttribute);
+
+		shaderProgram.vertexColorAttribute = gl.getAttribLocation(shaderProgram, "aVertexColor");
+		gl.enableVertexAttribArray(shaderProgram.vertexColorAttribute);
+						
+        shaderProgram.pMatrixUniform = gl.getUniformLocation(shaderProgram, "uPMatrix");
+        shaderProgram.mvMatrixUniform = gl.getUniformLocation(shaderProgram, "uMVMatrix");
+        shaderProgram.nMatrixUniform = gl.getUniformLocation(shaderProgram, "uNMatrix");
+        shaderProgram.samplerUniform = gl.getUniformLocation(shaderProgram, "uSampler");
+        shaderProgram.useTexturesUniform = gl.getUniformLocation(shaderProgram, "uUseTextures");
+		shaderProgram.useTransparencyUniform = gl.getUniformLocation(shaderProgram, "uUseTransparency");
+		
+        shaderProgram.alphaUniform = gl.getUniformLocation(shaderProgram, "uAlpha");
+
+        shaderProgram.ambientColorUniform = gl.getUniformLocation(shaderProgram, "uAmbientColor");
+        shaderProgram.lightingDirectionUniform = gl.getUniformLocation(shaderProgram, "uLightingDirection");
+        shaderProgram.directionalColorUniform = gl.getUniformLocation(shaderProgram, "uDirectionalColor");
+        shaderProgram.pointLightingLocationUniform = gl.getUniformLocation(shaderProgram, "uPointLightingLocation");
+        shaderProgram.pointLightingColorUniform = gl.getUniformLocation(shaderProgram, "uPointLightingColor");
+    }
+	
+	var currentlyPressedKeys = {};
+
+    function handleKeyDown(event)
+    {
+        currentlyPressedKeys[event.keyCode] = true;
+    }
+
+
+    function handleKeyUp(event)
+    {
+        currentlyPressedKeys[event.keyCode] = false;
+    }
+    
+    function handleKeys() 
+    {
+		if (currentlyPressedKeys[65]) //A
+			pointLightObject.positionX -= 0.1;
+		if (currentlyPressedKeys[68]) //D
+			pointLightObject.positionX+= 0.1;
+		if (currentlyPressedKeys[87]) //W
+			pointLightObject.positionY+= 0.1;
+		if (currentlyPressedKeys[83]) //S
+			pointLightObject.positionY-= 0.1;
+
+		if (currentlyPressedKeys[33]) // Page Up
+		cameraObject.focusAtY -= 0.1;
+		if (currentlyPressedKeys[34]) // Page Down 
+		cameraObject.focusAtY += 0.1;
+
+
+		if (currentlyPressedKeys[37]) // Left cursor key 
+		cameraObject.focusAtX -= 0.1;
+		if (currentlyPressedKeys[39]) // Right cursor key
+		cameraObject.focusAtX += 0.1;
+
+		if (currentlyPressedKeys[38]) // Up cursor key 
+		cameraObject.d -= 0.1;
+
+
+		if (currentlyPressedKeys[40]) // Down cursor key
+		cameraObject.d  += 0.1;
+
+    }
+    
+    var mouseDown = false;
+    var lastMouseX = null;
+    var lastMouseY = null;
+
+    function handleMouseDown(event)
+    {
+        mouseDown = true;
+        lastMouseX = event.clientX;
+        lastMouseY = event.clientY;
+    }
+
+
+    function handleMouseUp(event)
+    {
+        mouseDown = false;
+    }
+
+    function handleMouseMove(event)
+    {
+        if (!mouseDown) {
+            return;
+        }
+        var newX = event.clientX;
+        var newY = event.clientY;
+
+        var deltaX = newX - lastMouseX;
+        cameraObject.phi += deltaX/2;
+
+        var deltaY = newY - lastMouseY;
+        cameraObject.theta += deltaY/2;
+
+        lastMouseX = newX;
+        lastMouseY = newY;
+    }
+	
+	function setObjectBuffers(object)
+	{
+		setVerticesBuffer(object, object.vertices);
+		setNormalsBuffer(object, object.vertexNormals);
+
+		setVertexColorsBuffer(object, object.vertexColors);
+		setTextureBuffer(object, object.textureImage, object.textureCoords);
+		setVertexIndicesBuffer(object, object.vertexIndices);
+    }
+	
+    function setVertexIndicesBuffer(object, vertexIndexArray)
+    {
+        object.vertexIndexBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, object.vertexIndexBuffer);
+        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(vertexIndexArray), gl.STATIC_DRAW);
+        object.vertexIndexBuffer.itemSize = 1;
+        object.vertexIndexBuffer.numItems = vertexIndexArray.length;
+    }
+    
+    function setTextureBuffer(object, textureImage, textureCoordinateArray)
+	{
+		object.vertexTextureCoordBuffer = gl.createBuffer();
+		gl.bindBuffer(gl.ARRAY_BUFFER, object.vertexTextureCoordBuffer);
+		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(textureCoordinateArray), gl.STATIC_DRAW);        
+        object.vertexTextureCoordBuffer.itemSize = 2;
+        object.vertexTextureCoordBuffer.numItems = textureCoordinateArray.length;
+        
+        object.texture = gl.createTexture();
+        object.texture.image = new Image();
+        object.texture.crossOrigin = "anonymous";
+        object.texture.image.onload = function ()
+        {
+            handleLoadedTexture(object.texture)
+        }
+        object.texture.image.src = textureImage;
+	}
+    
+    function setVertexColorsBuffer(object, colorArray)
+    {		  
+        object.vertexColorBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, object.vertexColorBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colorArray), gl.STATIC_DRAW);
+        object.vertexColorBuffer.itemSize = 4;
+        object.vertexColorBuffer.numItems = colorArray;
+	 }
+    
+    function setNormalsBuffer(object, normalArray)
+    {    
+        object.vertexNormalBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, object.vertexNormalBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(normalArray), gl.STATIC_DRAW);
+        object.vertexNormalBuffer.itemSize = 3;
+        object.vertexNormalBuffer.numItems = normalArray.length;
+	 }
+    
+    function setVerticesBuffer(object, vertexArray)
+    {
+    	object.vertexPositionBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, object.vertexPositionBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertexArray), gl.STATIC_DRAW);
+        object.vertexPositionBuffer.itemSize = 3;
+        object.vertexPositionBuffer.numItems = vertexArray.length;
+    }
+   
+    function setCamera()
+    {
+		 var theta = degToRad(cameraObject.theta);
+		 var phi = degToRad(cameraObject.phi);
+		 var sinTheta = Math.sin(theta);
+		 
+		 cameraObject.positionX = cameraObject.d * sinTheta * Math.cos(phi);
+		 cameraObject.positionY = cameraObject.d * Math.cos(theta);
+		 cameraObject.positionZ = cameraObject.d * sinTheta * Math.sin(phi);
+		 
+		 cameraObject.upY = sinTheta/Math.abs(sinTheta);
+		 
+		 mvMatrix = mat4.lookAt(
+       								[cameraObject.positionX, cameraObject.positionY, cameraObject.positionZ],
+       								[cameraObject.focusAtX, cameraObject.focusAtY, cameraObject.focusAtZ],
+       								[cameraObject.upX, cameraObject.upY, cameraObject.upZ]
+       						);
+    }    
+    
+    function setLights()
+    {
+	  						
+	     setDirectionalLight(
+						      directionalLightObject.colorR,
+	     						directionalLightObject.colorG,
+	     						directionalLightObject.colorB,
+	     						directionalLightObject.directionX,
+	     						directionalLightObject.directionY,
+	     						directionalLightObject.directionZ
+	     						
+	     						);
+	     						
+	     setAmbientLight(
+	     						ambientLightObject.colorR,
+	     						ambientLightObject.colorG,
+	     						ambientLightObject.colorB
+	     						);
+
+    	  setPointLight(
+		  						pointLightObject.colorR,
+		  						pointLightObject.colorG,
+		  						pointLightObject.colorB,
+		  						pointLightObject.positionX,
+		  						pointLightObject.positionY,
+		  						pointLightObject.positionZ
+		  						);
+    }
+    
+    function initCamera()
+    {
+    	
+    	cameraObject.positionX = 0.0;
+	 	cameraObject.positionY = 0.0;
+	 	cameraObject.positionZ = 0.0;
+	 	
+	 	cameraObject.focusAtX = 0;
+	 	cameraObject.focusAtY = 0;
+	 	cameraObject.focusAtZ = 0;
+
+	 	cameraObject.upX = 0;
+	 	cameraObject.upY = 1;
+	 	cameraObject.upZ = 0;
+	 	
+	 	cameraObject.theta = 100;
+	 	cameraObject.phi = 90;
+	 	cameraObject.d = -50;
+
+	 	    
+    	cameraObject.angleX = 0;
+	 	cameraObject.angleY = 0;
+	 	cameraObject.angleZ = 0;
+	 }
+
+   function initLights()
+	{
+		gl.uniform1i(shaderProgram.samplerUniform, 0);
+
+		pointLightObject.positionX = 0;
+		pointLightObject.positionY = 0;
+		pointLightObject.positionZ = -10.0;
+	 
+		pointLightObject.colorR = 1.0;
+		pointLightObject.colorG = 1.0;
+		pointLightObject.colorB = 1.0;	 
+	 
+		directionalLightObject.directionX = -1;
+		directionalLightObject.directionY = +1;  // -1
+		directionalLightObject.directionZ = -1;  // -1
+
+		directionalLightObject.colorR = 0.33;
+		directionalLightObject.colorG = 0.45;
+		directionalLightObject.colorB = 0.53;
+
+		ambientLightObject.colorR = 0.33;
+		ambientLightObject.colorG = 0.33;
+		ambientLightObject.colorB = 0.33;
+   }
+     
+   function setAmbientLight(r, g, b)
+   {
+        gl.uniform3f(
+                shaderProgram.ambientColorUniform,
+                parseFloat(r),
+                parseFloat(g),
+                parseFloat(b)
+            );
+	}
+	  
+	function setDirectionalLight(r, g, b, x, y, z)
+	{
+        var lightingDirection = [
+                parseFloat(x),
+                parseFloat(y),
+                parseFloat(z)
+            ];
+            
+        var adjustedLD = vec3.create();
+        vec3.normalize(lightingDirection, adjustedLD);
+        vec3.scale(adjustedLD, -1);
+        gl.uniform3fv(shaderProgram.lightingDirectionUniform, adjustedLD);
+
+        gl.uniform3f(
+                shaderProgram.directionalColorUniform,
+                parseFloat(r),
+                parseFloat(g),
+                parseFloat(b)
+            );
+	}
+		
+	function setPointLight(r, g, b, x, y, z)
+	{
+        gl.uniform3f(
+                shaderProgram.pointLightingLocationUniform,
+                parseFloat(x),
+                parseFloat(y),
+                parseFloat(z)
+            );
+
+         gl.uniform3f(
+                shaderProgram.pointLightingColorUniform,
+                parseFloat(r),
+                parseFloat(g),
+                parseFloat(b)
+            );
+	 }
+
+    function initGL(canvas) {
+        try {
+            gl = canvas.getContext("experimental-webgl");
+            gl.viewportWidth = canvas.width;
+            gl.viewportHeight = canvas.height;
+        } catch (e) {
+        }
+        if (!gl) {
+            alert("Could not initialise WebGL, sorry :-(");
+        }
+    }
+
+    function getShader(gl, id) {
+        var shaderScript = document.getElementById(id);
+        if (!shaderScript) {
+            return null;
+        }
+
+        var str = "";
+        var k = shaderScript.firstChild;
+        while (k) {
+            if (k.nodeType == 3) {
+                str += k.textContent;
+            }
+            k = k.nextSibling;
+        }
+
+        var shader;
+        if (shaderScript.type == "x-shader/x-fragment") {
+            shader = gl.createShader(gl.FRAGMENT_SHADER);
+        } else if (shaderScript.type == "x-shader/x-vertex") {
+            shader = gl.createShader(gl.VERTEX_SHADER);
+        } else {
+            return null;
+        }
+
+        gl.shaderSource(shader, str);
+        gl.compileShader(shader);
+
+        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+            alert(gl.getShaderInfoLog(shader));
+            return null;
+        }
+
+        return shader;
+    }
+
+</script>
+
+<script type="text/javascript" >
+    function handleLoadedTexture(texture) {
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, texture.image);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_NEAREST);
+        gl.generateMipmap(gl.TEXTURE_2D);
+
+        gl.bindTexture(gl.TEXTURE_2D, null);
+    }
+
+    function mvPushMatrix() {
+        var copy = mat4.create();
+        mat4.set(mvMatrix, copy);
+        mvMatrixStack.push(copy);
+    }
+
+    function mvPopMatrix() {
+        if (mvMatrixStack.length == 0) {
+            throw "Invalid popMatrix!";
+        }
+        mvMatrix = mvMatrixStack.pop();
+    }
+
+    function setMatrixUniforms() {
+        gl.uniformMatrix4fv(shaderProgram.pMatrixUniform, false, pMatrix);
+        gl.uniformMatrix4fv(shaderProgram.mvMatrixUniform, false, mvMatrix);
+
+        var normalMatrix = mat3.create();
+        mat4.toInverseMat3(mvMatrix, normalMatrix);
+        mat3.transpose(normalMatrix);
+        gl.uniformMatrix3fv(shaderProgram.nMatrixUniform, false, normalMatrix);
+    }
+
+
+    function degToRad(degrees) {
+        return degrees * Math.PI / 180;
+    }
+</script>
+
+<script id="shader-fs" type="x-shader/x-fragment">
+    precision mediump float;
+    varying vec4 vColor;
+    
+    varying vec2 vTextureCoord;
+    varying vec3 vTransformedNormal;
+    varying vec4 vPosition;
+
+	uniform float uAlpha;
+	
+    uniform vec3 uAmbientColor;
+
+    uniform vec3 uLightingDirection;
+    uniform vec3 uDirectionalColor;
+
+    uniform vec3 uPointLightingLocation;
+    uniform vec3 uPointLightingColor;
+    
+    uniform bool uUseTextures;
+	uniform bool uUseTransparency;
+    uniform sampler2D uSampler;
+
+    void main(void) {
+		vec3 vLightWeighting;
+
+		vec3 pointLightDirection = normalize(uPointLightingLocation - vPosition.xyz);
+
+		float pointLightWeighting = max(dot(normalize(vTransformedNormal), pointLightDirection), 0.0);
+		float directionalLightWeighting = max(dot(normalize(vTransformedNormal), uLightingDirection), 0.0);
+
+        vLightWeighting = uAmbientColor + uPointLightingColor * pointLightWeighting + uDirectionalColor * directionalLightWeighting;
+        
+        vec4 fragmentColor;
+		float alpha = uAlpha;
+		if(!uUseTransparency) alpha = 1.0;
+        if(uUseTextures)
+			fragmentColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));
+        else
+			fragmentColor = vec4(vColor.rgb, vColor.a);
+			
+		gl_FragColor = vec4(fragmentColor.rgb*vLightWeighting, fragmentColor.a*alpha);
+    }
+</script>
+
+<script id="shader-vs" type="x-shader/x-vertex">
+    attribute vec3 aVertexPosition;
+    attribute vec4 aVertexColor;
+    attribute vec3 aVertexNormal;
+    attribute vec2 aTextureCoord;
+
+	uniform bool uUseTextures;
+	
+    uniform mat4 uMVMatrix;
+    uniform mat4 uPMatrix;
+    uniform mat3 uNMatrix;
+
+	varying vec2 vTextureCoord;
+    varying vec3 vTransformedNormal;
+    varying vec4 vPosition;
+    varying vec4 vColor;
+
+    void main(void)
+    {
+        vPosition = uMVMatrix * vec4(aVertexPosition, 1.0);
+        gl_Position = uPMatrix * vPosition;
+        
+		vColor = vec4(1.0, 1.0, 1.0, 1.0);
+		vTextureCoord = vec2(1.0, 1.0);
+		if(uUseTextures)
+			vTextureCoord = aTextureCoord;
+		else
+			vColor = aVertexColor;
+        vTransformedNormal = uNMatrix * aVertexNormal;
+    }
+</script>
+
+</head>
+
+
+<body onload="webGLStart();">
+	<canvas id="webgl-canvas" style="border: solid;" width="800" height="500"></canvas>
+	<canvas id="status-canvas" style="border: solid;" width="300" height="500"></canvas>	
+	<!-- <br>
+	<table border = 0 width = 80%>
+		<tr>
+			<td width = 30%>
+				<input type="checkbox" id="checkbox_show_agent" checked /> Show Agent<br/>
+				<input type="checkbox" id="checkbox_show_box_1" checked /> Show Box 1<br/>
+				<input type="checkbox" id="checkbox_show_box_2" checked /> Show Box 2<br/>
+				<input type="checkbox" id="checkbox_show_box_3" checked /> Show Box 3<br/>
+				<input type="checkbox" id="checkbox_show_box_4" checked /> Show Box 4<br/>
+				<input type="checkbox" id="checkbox_show_box_5" checked /> Show Box 5<br/>
+				<input type="checkbox" id="checkbox_show_box_6" checked /> Show Box 6<br/>
+				
+			</td>
+			<td> -->
+				Simulation
+				<br>
+				<input type = "button" value = "Start" onClick = "simulationSwitch (1);">
+				<br>
+				<input type = "button" value = "Stop" onClick = "simulationSwitch (0)">
+			<!-- </td>
+		</tr>
+	</table>
+
+	
+	<br><br> -->
+	
+	<!-- <select id = 'select_box' onChange = 'selectObject(this.value);'>
+		<option value =1> Agent </option>
+		<option value =2> Box 1</option>
+		<option value =3> Box 2</option>
+		<option value =4> Box 3</option>
+		<option value =5> Box 4</option>
+		<option value =6> Box 5</option>
+		<option value =7> Box 6</option>
+	</select>
+	
+	<br>
+	Force (X, Y, Z): (
+						<input type = "text" id = "force_x"  value = "0"/>,
+						<input type = "text" id = "force_y"  value = "0"/>,	
+						<input type = "text" id = "force_z"  value = "0" />
+						)
+
+	<br>
+	Torque (X, Y, Z): (
+						<input type = "text" id = "torque_x" value = "0" />,
+						<input type = "text" id = "torque_y" value = "0" />,	
+						<input type = "text" id = "torque_z" value = "0" />
+						)						
+	<br>
+	<input type = "button" value = "Apply" onClick = 'applyForceAndTorque()' /> -->
+</body>
+
+
+</html>
