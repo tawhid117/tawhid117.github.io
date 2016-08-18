@@ -23,7 +23,7 @@ div.center_col {
 } 
 div.left_col {
     position: absolute;
-    top: 35%;
+    top: 30%;
     width: 15%;
     
     left: 5%;
@@ -40,7 +40,7 @@ div.right_col {
 
 div.menu {
     position: fixed;
-    top: 35%;
+    top: 30%;
     left: 5%;
     width: 15%;
     //height: 100px;
