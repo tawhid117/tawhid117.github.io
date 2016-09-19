@@ -64,13 +64,10 @@ The procedure we developed can be used to conduct feasibility study for a genera
 </p>
 <img src="/img/project-2.jpg" alt="Tawhid_Jayed" style="float: right; width: 60%;">
 <p>
-The concept is, the operator manually controls the robot arm to perform one task. This movement is recorded at the same time in a way that it can be automatically executed later.
+The concept is, the operator manually controls the robot arm with a joy pad to perform one task. This movement including all the important intermediate points are recorded, so that they can be automatically executed later.
 </p>
 <p>
-The operator controls the robot with the joy pad. In addition to the target point, other in between points must also be stored. The reason is to avoid collision with any existing obstacle. In order to record the points, the current position of the robot arm is requested by the graphical user interface. An additional widget is required to be created and integrated with the existing operator interface. Using this, a motion sequence, containing the individual movement steps, can be generated in the GUI. Next, this motion sequence is required to be saved for playback. The GUI acts as a connecting bridge between the robot hardware and database. So, the motion sequence is sent to a database to be stored. The database is built as an independent node which is able to perform different operations as requested by the client (GUI). The database stores the motion sequence in computer hard drive. So, the saved points remain available even after restarting the whole system.
-</p>
-<p>
-Next portion is to repeat the task which is already recorded and stored in the database. The operator can choose from a list of available sequences from the database. The chosen sequence is loaded from the database to GUI and sent to the hardware interface for execution. Then, the whole motion sequence, consisting of starting pose, intermediate poses and goal pose, is executed automatically by the robot arm. So, the concept can be divided into three areas:<br>Motion Sequecen Database<br>Graphical User Interface (GUI)<br>Hardware Interface
+KDL dynamixel library was used to record the angular positions of the seven servro motors installed at the robot arm. A graphical user interface was also created as a connecting bridge between the robot hardware and database. It was used to record one complete task and also to load a from previously recorded task from database for repeatition.
 </p>
 
 <a name="project-3"></a>
@@ -80,7 +77,9 @@ Next portion is to repeat the task which is already recorded and stored in the d
 <p>
 This was done as a part of the course. The ideas was to represent different cognitive response via any object/animal.
 I choose ant and tried to sketch a lifecycle of it depending on food source, physical energy and diffrent status like, 
-working, searching for food, taking food, death etc. <a href="files/ant/ant.html" target="_blank" >[view simulation...]</a>
+working, searching for food, taking food, death etc. 
+<br>
+<a href="files/ant/ant.html" target="_blank" >[view simulation...]</a>
 </p>
 <br><br>
 
