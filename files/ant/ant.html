@@ -903,7 +903,7 @@
 		if (energy > 1000) {statusContext.fillText  ('Ready to work', 175, 100);}
 		if (energy > 900 && energy<1000) {statusContext.fillText  ('Free Time', 175, 100);}
 		if (energy < 000) {statusContext.fillText  ('Died', 175, 100);}
-		if (energy < 000) {statusContext.fillText  ('Carried to Cemetery', 175, 100);}
+		if (energy < 000) {statusContext.fillText  ('Carried to Cemetery', 175, 200);}
 		
 		
 		//	What is it doing?																			//What is it doing?
@@ -1536,7 +1536,13 @@
 
 
 <body onload="webGLStart();">
-	Story line:<br><br><br>
+	<font color="red"><b>Story line:<\b><\font><br><br>
+		The <font color="blue">blue<\font> ant, which starts with 1000 energy units, eat, work, sleep as well as avoid dangerous obejcets in the virtual world:<br><br>
+		<b>Rest/hungry stage:<\b> When its energy level drops below 900 units (over the time lapse), it feels hunger and starts searching for food. However, it already knows all the food sources(pink icecream, brown pie etc..). But, the food sources are limited and there are also a fixed amounts which can be taken from a specific food source per serving.<br><br>
+		<b>Avoid collision:<\b> While travelling to a food source, it must avouid the human who is walking repeatedly along a short staright path(much to visualize different interactions within a short period of simulation).<br><br>
+		<b>Work:<\b> When energy is more than 1200 units, it goes to green house, work there and loose 500 energy unit.<br><br>
+		<b>End:<\b> When the food sources become empty, it cannot gather any more energy and its life ends. Then it is carried to the cemetry(How???).<br><br>
+			
 	<canvas id="webgl-canvas" style="border: solid;" width="800" height="500"></canvas>
 	<canvas id="status-canvas" style="border: solid;" width="300" height="500"></canvas>	
 	<!-- <br>
