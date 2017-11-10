@@ -4,12 +4,13 @@ body {
     background-color: white; /*  rgb(255,255,255);  */
 }
 div.top_row{
-    position: fixed; /* absolute; */
+    position: absolute;
     top: 5%;
     width: 80%;
     left: 10%;
     right: 10%
-    text-align: right;
+    text-align: center;
+    color: black;
 }
 div.center_col {
     position: absolute;
@@ -58,7 +59,6 @@ nav ul, footer ul {
     padding: 1% 20%;
     list-style: none;
     /* font-weight: bold; */
-    color: black; /* rgb(5,10,5); */
 }
 nav ul li, footer ul li {
     display: inline;
